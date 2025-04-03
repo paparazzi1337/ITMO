@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  app:
+    build: ./app  # предполагается, что Dockerfile находится в папке ./app
+    #env_file: 
+    #  - ./app.env  # файл с переменными окружения
+    volumes:
+      - ./app:/app  # монтирование исходных файлов
+    depends_on:
+      - database
+      - rabbitmq
+    networks:
+      - backend
+
+  web-proxy:
+    image: nginx:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - app
+    networks:
+      - backend
+      - frontend
+
+  rabbitmq:
+    image: rabbitmq:management
+    ports:
+      - "5672:5672"  # порт для AMQP
+      - "15672:15672"  # порт для веб-интерфейса
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: unless-stopped  # перезагружаться при сбоях
+    networks:
+      - backend
+
+  database:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: mydb
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+volumes:
+  rabbitmq_data:
+    driver: local
+  postgres_data:
+    driver: local
+
+networks:
+  backend:
+    driver: bridge
+  frontend:
+    driver: bridge
