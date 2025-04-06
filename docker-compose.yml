@@ -31,7 +31,7 @@ services:
       - "15672:15672"  # порт для веб-интерфейса
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-    restart: unless-stopped  # перезагружаться при сбоях
+    restart: on-failure  # перезагружаться при сбоях
     networks:
       - backend
 
@@ -42,14 +42,14 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pg_data:/var/lib/postgresql/data
     networks:
       - backend
 
 volumes:
   rabbitmq_data:
     driver: local
-  postgres_data:
+  pg_data:
     driver: local
 
 networks:
