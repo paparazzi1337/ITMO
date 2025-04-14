@@ -1,17 +1,20 @@
-import uuid
-from datetime import datetime
-from typing import Dict, List
-from enum import Enum
 from decimal import Decimal
+from enum import Enum
+from uuid import uuid4
+from datetime import datetime
+from typing import List, Dict
 import threading
+from sqlalchemy.orm import Session
+from sqlalchemy import Column, String, Numeric, Enum as SQLEnum, DateTime, ForeignKey
+from database.database import Base
 
-class TransactionType(Enum):
+class TransactionType(str, Enum):
     DEPOSIT = "deposit"
     WITHDRAWAL = "withdrawal"
     PAYMENT = "payment"
     REFUND = "refund"
 
-class TransactionStatus(Enum):
+class TransactionStatus(str, Enum):
     PENDING = "pending"
     COMPLETED = "completed"
     FAILED = "failed"
@@ -23,50 +26,82 @@ class InsufficientFundsError(Exception):
 class TransactionNotFoundError(Exception):
     pass
 
+class Transaction(Base):
+    __tablename__ = "transactions"
+
+    id = Column(String, primary_key=True, default=lambda: f"tx_{uuid4().hex}")
+    user_id = Column(String, ForeignKey("users.user_id"), nullable=False)
+    amount = Column(Numeric(precision=20, scale=2), nullable=False)
+    type = Column(SQLEnum(TransactionType), nullable=False)
+    status = Column(SQLEnum(TransactionStatus), nullable=False)
+    description = Column(String)
+    error = Column(String)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+class Balance(Base):
+    __tablename__ = "balances"
+
+    user_id = Column(String, ForeignKey("users.user_id"), primary_key=True)
+    amount = Column(Numeric(precision=20, scale=2), default=Decimal('0'), nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 class BalanceService:
-    def __init__(self):
-        self._balances: Dict[str, Decimal] = {}  # user_id -> balance
-        self._transactions: Dict[str, Dict] = {}  # transaction_id -> transaction_data
-        self._lock = threading.Lock()  # Для потокобезопасности
+    def __init__(self, db: Session):
+        self.db = db
+        self._lock = threading.Lock()
 
     def get_balance(self, user_id: str) -> Decimal:
-        """Возвращает текущий баланс пользователя."""
-        return self._balances.get(user_id, Decimal('0'))
+        balance = self.db.query(Balance).filter(Balance.user_id == user_id).first()
+        return balance.amount if balance else Decimal('0')
 
     def deposit(self, user_id: str, amount: Decimal, description: str = "") -> str:
-        """Пополняет баланс пользователя."""
-        with self._lock:
-            if user_id not in self._balances:
-                raise ValueError(f"User {user_id} has no account")
-            
-            if amount <= Decimal('0'):
-                raise ValueError("Amount must be positive")
+        if amount <= Decimal('0'):
+            raise ValueError("Amount must be positive")
 
-            transaction_id = self._log_transaction(
+        with self._lock:
+            transaction = Transaction(
                 user_id=user_id,
                 amount=amount,
-                transaction_type=TransactionType.DEPOSIT,
-                description=description,
-                status=TransactionStatus.PENDING
+                type=TransactionType.DEPOSIT,
+                status=TransactionStatus.PENDING,
+                description=description
             )
+            self.db.add(transaction)
 
-            try:
-                self._balances[user_id] += amount
-                self._transactions[transaction_id]['status'] = TransactionStatus.COMPLETED
-                return transaction_id
-            except Exception as e:
-                self._transactions[transaction_id]['status'] = TransactionStatus.FAILED
-                self._transactions[transaction_id]['error'] = str(e)
-                raise
+            balance = self.db.query(Balance).filter(Balance.user_id == user_id).first()
+            if not balance:
+                balance = Balance(user_id=user_id, amount=Decimal('0'))
+                self.db.add(balance)
 
-    def make_payment(
-        self,
-        user_id: str,
-        amount: Decimal,
-        service_name: str,
-        reference_id: str = None
-    ) -> str:
-        """Обрабатывает платеж за использование сервиса."""
+            balance.amount += amount
+            transaction.status = TransactionStatus.COMPLETED
+            self.db.commit()
+            return transaction.id
+
+    def withdraw(self, user_id: str, amount: Decimal, description: str = "") -> str:
+        if amount <= Decimal('0'):
+            raise ValueError("Amount must be positive")
+
+        with self._lock:
+            balance = self.db.query(Balance).filter(Balance.user_id == user_id).first()
+            if not balance or balance.amount < amount:
+                raise InsufficientFundsError("Insufficient funds")
+
+            transaction = Transaction(
+                user_id=user_id,
+                amount=amount,
+                type=TransactionType.WITHDRAWAL,
+                status=TransactionStatus.PENDING,
+                description=description
+            )
+            self.db.add(transaction)
+
+            balance.amount -= amount
+            transaction.status = TransactionStatus.COMPLETED
+            self.db.commit()
+            return transaction.id
+
+    def make_payment(self, user_id: str, amount: Decimal, service_name: str, reference_id: str = None) -> str:
         description = f"Payment for {service_name}"
         if reference_id:
             description += f" (ref: {reference_id})"
@@ -78,31 +113,34 @@ class BalanceService:
         )
 
     def get_transaction_history(self, user_id: str) -> List[Dict]:
-        """Возвращает историю транзакций пользователя."""
-        return [
-            tx for tx in self._transactions.values()
-            if tx['user_id'] == user_id
-        ]
+        transactions = self.db.query(Transaction)\
+            .filter(Transaction.user_id == user_id)\
+            .order_by(Transaction.timestamp.desc())\
+            .all()
+        
+        return [{
+            'id': tx.id,
+            'amount': tx.amount,
+            'type': tx.type,
+            'description': tx.description,
+            'status': tx.status,
+            'timestamp': tx.timestamp.isoformat()
+        } for tx in transactions]
 
-    def _log_transaction(
-        self,
-        user_id: str,
-        amount: Decimal,
-        transaction_type: TransactionType,
-        description: str = "",
-        status: TransactionStatus = TransactionStatus.COMPLETED
-    ) -> str:
-        """Логирует транзакцию и возвращает её ID."""
-        transaction_id = f"tx_{uuid.uuid4().hex}"
+    def get_transaction(self, transaction_id: str) -> Dict:
+        transaction = self.db.query(Transaction)\
+            .filter(Transaction.id == transaction_id)\
+            .first()
         
-        self._transactions[transaction_id] = {
-            'id': transaction_id,
-            'user_id': user_id,
-            'amount': float(amount),  # Для JSON-сериализации
-            'type': transaction_type.value,
-            'description': description,
-            'status': status.value,
-            'timestamp': datetime.utcnow().isoformat()
+        if not transaction:
+            raise TransactionNotFoundError(f"Transaction {transaction_id} not found")
+        
+        return {
+            'id': transaction.id,
+            'user_id': transaction.user_id,
+            'amount': transaction.amount,
+            'type': transaction.type,
+            'status': transaction.status,
+            'description': transaction.description,
+            'timestamp': transaction.timestamp.isoformat()
         }
-        
-        return transaction_id

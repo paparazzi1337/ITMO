@@ -1,7 +1,10 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from datetime import datetime
-from typing import Dict
 from enum import Enum
+from typing import Dict
+from sqlalchemy import Column, String, JSON, DateTime, Enum as SQLEnum, ForeignKey
+from sqlalchemy.orm import relationship
+from database.database import Base
 
 class MLModelStatus(Enum):
     TRAINING = "training"
@@ -9,7 +12,21 @@ class MLModelStatus(Enum):
     INACTIVE = "inactive"
     ERROR = "error"
 
-class BaseMLModel(ABC):
+class BaseMLModel(Base):
+    __tablename__ = "models"
+
+    model_id = Column(String, primary_key=True)
+    name = Column(String, nullable=False)
+    owner_id = Column(String, ForeignKey("users.user_id"), nullable=False)
+    status = Column(SQLEnum(MLModelStatus), default=MLModelStatus.INACTIVE)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    metadata = Column(JSON, default={})
+    model_type = Column(String, nullable=False)
+    model_path = Column(String)
+
+    owner = relationship("BaseUser", back_populates="models")
+    predictions = relationship("PredictionTask", back_populates="model")
+
     def __init__(self, model_id: str, name: str, owner_id: str):
         self._model_id = model_id
         self._name = name
@@ -17,6 +34,7 @@ class BaseMLModel(ABC):
         self._status = MLModelStatus.INACTIVE
         self._created_at = datetime.now()
         self._metadata: Dict[str, str] = {}
+        self.model_type = "base"
 
     @property
     def model_id(self) -> str:
@@ -54,9 +72,8 @@ class BaseMLModel(ABC):
     def deactivate(self) -> None:
         self._status = MLModelStatus.INACTIVE
 
-    @abstractmethod
     def predict(self, input_data: Dict) -> Dict:
-        pass
+        raise NotImplementedError("Метод должен быть переопределен в дочерних классах")
 
     def __str__(self) -> str:
         return f"ML Model {self._name} ({self._status.value})"
@@ -65,6 +82,7 @@ class TensorFlowModel(BaseMLModel):
     def __init__(self, model_id: str, name: str, owner_id: str, model_path: str):
         super().__init__(model_id, name, owner_id)
         self._model_path = model_path
+        self.model_type = "tensorflow"
         self._model = self._load_model()
 
     def _load_model(self):

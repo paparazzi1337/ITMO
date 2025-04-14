@@ -1,14 +1,31 @@
-from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
+from sqlalchemy import Column, String, JSON, DateTime, Enum as SQLEnum, ForeignKey
+from sqlalchemy.orm import relationship
+from database.database import Base
+
 
 class PredictionStatus(Enum):
     PENDING = "pending"
     COMPLETED = "completed"
     FAILED = "failed"
 
-class PredictionTask:
+class PredictionTask(Base):
+    __tablename__ = "predictions"
+
+    task_id = Column(String, primary_key=True)
+    user_id = Column(String, ForeignKey("users.user_id"))
+    model_id = Column(String, ForeignKey("models.model_id"))
+    input_data = Column(JSON)
+    status = Column(SQLEnum(PredictionStatus), default=PredictionStatus.PENDING)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    result = Column(JSON)
+    error = Column(String)
+    
+    user = relationship("BaseUser", back_populates="predictions")
+    model = relationship("MLModel", back_populates="predictions")
+
     def __init__(self, task_id: str, model_id: str, input_data: Dict):
         self._task_id = task_id
         self._model_id = model_id
@@ -58,21 +75,26 @@ class PredictionTask:
         return f"Task {self._task_id} for model {self._model_id} ({self._status.value})"
 
 class PredictionHistory:
-    def __init__(self):
-        self._history: List[PredictionTask] = []
+    def __init__(self, db_session):
+        self.db = db_session
 
     def add_task(self, task: PredictionTask) -> None:
-        self._history.append(task)
+        self.db.add(task)
+        self.db.commit()
 
     def get_user_history(self, user_id: str) -> List[PredictionTask]:
-        # В реальной реализации здесь будет фильтрация по пользователю
-        return [task for task in self._history]
+        return self.db.query(PredictionTask)\
+            .filter(PredictionTask.user_id == user_id)\
+            .order_by(PredictionTask.created_at.desc())\
+            .all()
 
     def get_model_history(self, model_id: str) -> List[PredictionTask]:
-        return [task for task in self._history if task.model_id == model_id]
+        return self.db.query(PredictionTask)\
+            .filter(PredictionTask.model_id == model_id)\
+            .order_by(PredictionTask.created_at.desc())\
+            .all()
 
     def get_task_by_id(self, task_id: str) -> Optional[PredictionTask]:
-        for task in self._history:
-            if task.task_id == task_id:
-                return task
-        return None
+        return self.db.query(PredictionTask)\
+            .filter(PredictionTask.task_id == task_id)\
+            .first()
