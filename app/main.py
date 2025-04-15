@@ -1,95 +1,79 @@
-from models.base_user import BaseUser, RegularUser, ModelOwnerUser, AdminUser, UserRole
-from models.balance import Balance, Transaction, BalanceService, TransactionType
-from models.model import TensorFlowModel
-from models.prediction_history import PredictionTask, PredictionHistory, PredictionStatus
 import uuid
 from decimal import Decimal
-from datetime import datetime
-from database.database import engine, SessionLocal, Base
-
-def init_db():
-    # Create all tables
-    Base.metadata.create_all(bind=engine)
-
-def create_users(session):
-    # Create different types of users
-    regular_user = RegularUser(
-        user_id=str(uuid.uuid4()),
-        username="regular_user",
-        email="regular@example.com",
-        password="regular123"
-    )
-    
-    model_owner = ModelOwnerUser(
-        user_id=str(uuid.uuid4()),
-        username="model_owner",
-        email="owner@example.com",
-        password="owner123"
-    )
-    
-    admin = AdminUser(
-        user_id=str(uuid.uuid4()),
-        username="admin",
-        email="admin@example.com",
-        password="admin123"
-    )
-    
-    # Add users to session
-    session.add_all([regular_user, model_owner, admin])
-    session.commit()
-    
-    return regular_user, model_owner, admin
-
-def demo_balance_operations(session, users):
-    regular_user, model_owner, admin = users
-    balance_service = BalanceService(session)
-    
-    # Deposit money to users
-    print("\nDepositing money to users:")
-    tx1 = balance_service.deposit(regular_user.user_id, Decimal('1000.00'), "Initial deposit")
-    tx2 = balance_service.deposit(model_owner.user_id, Decimal('2000.00'), "Initial deposit")
-    tx3 = balance_service.deposit(admin.user_id, Decimal('3000.00'), "Initial deposit")
-    
-    # Check balances
-    print("\nUser balances:")
-    print(f"Regular user balance: {balance_service.get_balance(regular_user.user_id)}")
-    print(f"Model owner balance: {balance_service.get_balance(model_owner.user_id)}")
-    print(f"Admin balance: {balance_service.get_balance(admin.user_id)}")
-    
-    # Make a payment
-    print("\nMaking payment from regular user:")
-    payment_tx = balance_service.make_payment(
-        regular_user.user_id,
-        Decimal('150.00'),
-        "Model prediction service"
-    )
-    print(f"Payment transaction ID: {payment_tx}")
-    
-    # Check balance after payment
-    print(f"Regular user balance after payment: {balance_service.get_balance(regular_user.user_id)}")
-    
-    # Show transaction history
-    print("\nRegular user transaction history:")
-    history = balance_service.get_transaction_history(regular_user.user_id)
-    for tx in history:
-        print(f"{tx['timestamp']} - {tx['type']}: {tx['amount']} ({tx['status']})")
+from database.database import get_session, init_db
+from services.base_user_services import UserService
+from services.balance_services import BalanceService
+from services.model_services import ModelService
+from services.prediction_history_services import PredictionService
 
 def main():
+    # Инициализация БД (только для разработки!)
     init_db()
-    db = SessionLocal()
-    
+
+    # Получаем сессию БД
+    db = next(get_session())
+
     try:
-        # Create users
-        users = create_users(db)
-        
-        # Demo balance operations
-        demo_balance_operations(db, users)
-        
-        # Commit all changes
-        db.commit()
+        # 1. Инициализация сервисов
+        user_service = UserService(db)
+        balance_service = BalanceService(db)
+        model_service = ModelService(db)
+        prediction_service = PredictionService(db)
+
+        # 2. Создание тестового пользователя
+        user = user_service.create_user({
+            'user_id': str(uuid.uuid4()),
+            'username': 'test_user',
+            'email': 'user@example.com',
+            'password': 'securepassword123',
+            'role': 'regular'
+        })
+        print(f"Создан пользователь: {user.username} ({user.role})")
+
+        # 3. Пополнение баланса
+        deposit_tx = balance_service.deposit(
+            user=user,
+            amount=Decimal('1000.00'),
+            description="Initial deposit"
+        )
+        print(f"Пополнение баланса. ID транзакции: {deposit_tx}")
+        print(f"Текущий баланс: {balance_service.get_balance(user)}")
+
+        # 4. Создание модели
+        model = model_service.create_model({
+            'model_id': str(uuid.uuid4()),
+            'name': 'Test Model',
+            'owner_id': user.user_id,
+            'model_type': 'tensorflow',
+            'model_path': '/models/test'
+        })
+        print(f"Создана модель: {model.name}")
+
+        # 5. Создание задачи предсказания
+        prediction_task = prediction_service.create_task({
+            'task_id': str(uuid.uuid4()),
+            'user_id': user.user_id,
+            'model_id': model.model_id,
+            'input_data': {'param1': 1, 'param2': 2}
+        })
+        print(f"Создана задача предсказания: {prediction_task.task_id}")
+
+        # 6. Завершение задачи предсказания
+        prediction_service.complete_task(
+            task_id=prediction_task.task_id,
+            result={'output': 42}
+        )
+        print("Задача предсказания завершена")
+
+        # 7. Проверка истории транзакций
+        transactions = balance_service.get_transaction_history(user.user_id)
+        print("\nИстория транзакций:")
+        for tx in transactions:
+            print(f"{tx['timestamp']} - {tx['type']}: {tx['amount']}")
+
     except Exception as e:
         db.rollback()
-        print(f"Error: {e}")
+        print(f"Ошибка: {e}")
     finally:
         db.close()
 
