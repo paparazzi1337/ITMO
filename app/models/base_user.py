@@ -12,15 +12,15 @@ class UserRole(str, Enum):
 class BaseUser(Base):
     __tablename__ = "users"
 
-    _user_id = Column("user_id", String, primary_key=True)
-    _username = Column("username", String, unique=True, nullable=False)
-    _email = Column("email", String, unique=True, nullable=False)
-    _password = Column("password", String, nullable=False)
-    _role = Column("role", SQLEnum(UserRole), nullable=False)
-    _created_at = Column("created_at", DateTime, default=datetime.now)
-    _is_active = Column("is_active", Boolean, default=True)
+    user_id = Column("user_id", String, primary_key=True)
+    username = Column("username", String, unique=True, nullable=False)
+    email = Column("email", String, unique=True, nullable=False)
+    password_hash = Column("password", String, nullable=False)
+    role = Column("role", SQLEnum(UserRole), nullable=False)
+    created_at = Column("created_at", DateTime, default=datetime.now)
+    is_active = Column("is_active", Boolean, default=True)
 
-    balance = relationship("Balance", back_populates="user", uselist=False)
-    transactions = relationship("Transaction", back_populates="user")
-    predictions = relationship("PredictionTask", back_populates="user")
-    models = relationship("MLModel", back_populates="owner")
+    balance = relationship("Balance", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")
+    predictions = relationship("PredictionTask", back_populates="user", cascade="all, delete-orphan")
+    models = relationship("BaseMLModel", back_populates="owner", cascade="all, delete-orphan")

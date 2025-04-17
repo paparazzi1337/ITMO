@@ -1,7 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
-#from database.config import get_settings
+from database.config import get_settings
+from typing import Generator
 
 SQLALCHEMY_DATABASE_URL = "postgresql://user:password@database:5432/mydb"
 
@@ -25,6 +26,13 @@ def get_session():
         yield db
     finally:
         db.close()
+
+def get_db() -> Generator[Session, None, None]:
+    """
+    Основной генератор сессий для зависимостей FastAPI
+    (Типизированная версия с правильными аннотациями)
+    """
+    return get_session()
 
 def init_db():
     """

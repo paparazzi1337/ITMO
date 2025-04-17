@@ -1,0 +1,108 @@
+from pydantic import BaseModel, EmailStr
+from datetime import datetime
+from enum import StrEnum
+from typing import Optional
+from decimal import Decimal
+
+# Auth schemas
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+# User schemas
+class UserRole(StrEnum):
+    ADMIN = "admin"
+    REGULAR = "regular"
+    MODEL_OWNER = "model_owner"
+
+class UserBase(BaseModel):
+    email: EmailStr
+    username: str
+
+class UserCreate(UserBase):
+    password: str
+
+class UserResponse(UserBase):
+    user_id: str
+    role: UserRole
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# Balance schemas
+class TransactionType(StrEnum):
+    DEPOSIT = "deposit"
+    WITHDRAWAL = "withdrawal"
+    PAYMENT = "payment"
+    REFUND = "refund"
+
+class TransactionCreate(BaseModel):
+    amount: Decimal
+    description: Optional[str] = None
+
+class TransactionResponse(TransactionCreate):
+    id: str
+    user_id: str
+    type: TransactionType
+    status: str
+    timestamp: datetime
+
+    class Config:
+        from_attributes = True
+
+class BalanceResponse(BaseModel):
+    amount: Decimal
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# Model schemas
+class MLModelStatus(StrEnum):
+    TRAINING = "training"
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    ERROR = "error"
+
+class ModelBase(BaseModel):
+    name: str
+    model_type: str
+
+class ModelCreate(ModelBase):
+    pass
+
+class ModelResponse(ModelBase):
+    model_id: str
+    owner_id: str
+    status: MLModelStatus
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# Prediction schemas
+class PredictionStatus(StrEnum):
+    PENDING = "pending"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+class PredictionCreate(BaseModel):
+    model_id: str
+    input_data: dict
+
+class PredictionResponse(PredictionCreate):
+    task_id: str
+    user_id: str
+    status: PredictionStatus
+    created_at: datetime
+    result: Optional[dict] = None
+    error: Optional[str] = None
+
+    class Config:
+        from_attributes = True

@@ -25,4 +25,4 @@ class BaseMLModel(Base):
     model_path = Column(String)
 
     owner = relationship("BaseUser", back_populates="models")
-    predictions = relationship("PredictionTask", back_populates="models")
+    predictions = relationship("PredictionTask", back_populates="model", cascade="all, delete-orphan")
