@@ -1,6 +1,6 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from datetime import datetime
-from enum import StrEnum
+from enum import Enum
 from typing import Optional
 from decimal import Decimal
 
@@ -14,7 +14,7 @@ class UserLogin(BaseModel):
     password: str
 
 # User schemas
-class UserRole(StrEnum):
+class UserRole(str, Enum):
     ADMIN = "admin"
     REGULAR = "regular"
     MODEL_OWNER = "model_owner"
@@ -36,7 +36,7 @@ class UserResponse(UserBase):
         from_attributes = True
 
 # Balance schemas
-class TransactionType(StrEnum):
+class TransactionType(str, Enum):
     DEPOSIT = "deposit"
     WITHDRAWAL = "withdrawal"
     PAYMENT = "payment"
@@ -64,13 +64,15 @@ class BalanceResponse(BaseModel):
         from_attributes = True
 
 # Model schemas
-class MLModelStatus(StrEnum):
+class MLModelStatus(str, Enum):
     TRAINING = "training"
     ACTIVE = "active"
     INACTIVE = "inactive"
     ERROR = "error"
 
 class ModelBase(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     name: str
     model_type: str
 
@@ -78,21 +80,26 @@ class ModelCreate(ModelBase):
     pass
 
 class ModelResponse(ModelBase):
+    model_config = ConfigDict(
+        protected_namespaces=(),
+        from_attributes = True
+    )
+
     model_id: str
     owner_id: str
     status: MLModelStatus
     created_at: datetime
-
-    class Config:
-        from_attributes = True
+        
 
 # Prediction schemas
-class PredictionStatus(StrEnum):
+class PredictionStatus(str, Enum):
     PENDING = "pending"
     COMPLETED = "completed"
     FAILED = "failed"
 
 class PredictionCreate(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     model_id: str
     input_data: dict
 

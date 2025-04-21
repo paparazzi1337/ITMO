@@ -5,7 +5,7 @@ from services.base_user_services import UserService
 from database.database import get_session
 from uuid import uuid4
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(prefix="/users")
 
 @router.post("/", response_model=UserResponse)
 def create_user(

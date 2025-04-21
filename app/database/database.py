@@ -4,7 +4,8 @@ from sqlalchemy.orm import sessionmaker, Session
 from database.config import get_settings
 from typing import Generator
 
-SQLALCHEMY_DATABASE_URL = "postgresql://user:password@database:5432/mydb"
+# Убедитесь, что используете правильный URL:
+SQLALCHEMY_DATABASE_URL = "postgresql+psycopg2://user:password@database:5432/mydb"
 
 engine = create_engine(
     url=SQLALCHEMY_DATABASE_URL,

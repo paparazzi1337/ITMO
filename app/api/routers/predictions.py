@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from ..schemas import PredictionCreate, PredictionResponse
 from services.prediction_history_services import PredictionService
 from services.balance_services import BalanceService
+from services.model_services import ModelService
 from ..dependencies import get_current_user
 from database.database import get_session
 from models.base_user import BaseUser
@@ -22,22 +23,30 @@ def create_prediction(
 ):
     prediction_service = PredictionService(db)
     balance_service = BalanceService(db)
+    model_service = ModelService(db)
     
     try:
+        # Списание средств
         balance_service.withdraw(
             current_user.user_id,
             PREDICTION_COST,
             f"Prediction using model {prediction.model_id}"
         )
         
+        # Публикация задачи в RabbitMQ
+        task_id = model_service.publish_prediction_task(
+            prediction.model_id,
+            prediction.input_data
+        )
+        
+        # Создание записи о задаче
         task = prediction_service.create_task({
-            'task_id': str(uuid4()),
+            'task_id': task_id,
             'user_id': current_user.user_id,
             'model_id': prediction.model_id,
-            'input_data': prediction.input_data
+            'input_data': prediction.input_data,
+            'status': 'queued'
         })
-        
-        prediction_service.complete_task(task.task_id, {"result": "sample"})
         
         return task
     except Exception as e:

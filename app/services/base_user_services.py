@@ -44,8 +44,13 @@ class UserService:
             **kwargs
     })
     
-    def verify_user(self, email: str, password: str) -> Optional[BaseUser]:
-        user = self.db.query(BaseUser).filter(BaseUser.email == email).first()
+    def verify_user(self, username_or_email: str, password: str) -> Optional[BaseUser]:
+        # Позволяем аутентификацию по email или username
+        user = self.db.query(BaseUser).filter(
+            (BaseUser.email == username_or_email) | 
+            (BaseUser.username == username_or_email)
+        ).first()
+        
         if user and bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
             return user
         return None

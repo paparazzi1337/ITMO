@@ -43,6 +43,19 @@ services:
     networks:
       - backend
 
+  ml_worker:
+    build: ./app
+    command: python -m services.ml_worker
+    volumes:
+      - ./app:/app
+    depends_on:
+      - rabbitmq
+      - database
+    networks:
+      - backend
+    deploy:
+      replicas: 3
+
   database:
     image: postgres:latest
     environment:
