@@ -1,4 +1,4 @@
-import pika
+'''import pika
 import json
 from sqlalchemy.orm import Session
 from database.database import SessionLocal
@@ -70,4 +70,4 @@ def start_worker():
     channel.start_consuming()
 
 if __name__ == '__main__':
-    start_worker()
+    start_worker()'''

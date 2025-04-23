@@ -7,7 +7,7 @@ from services.base_user_services import UserService
 from database.database import get_session
 from database.config import settings
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login", scheme_name="BearerAuth")
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -23,11 +23,11 @@ async def get_current_user(
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
+        
+        user_service = UserService(db)
+        user = user_service.verify_user(username_or_email=username, password="")
+        if not user:
+            raise credentials_exception
+        return user
     except JWTError:
         raise credentials_exception
-    
-    user_service = UserService(db)
-    user = user_service.db.query(BaseUser).filter(BaseUser.username == username).first()
-    if user is None:
-        raise credentials_exception
-    return user
