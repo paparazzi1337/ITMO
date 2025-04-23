@@ -86,6 +86,7 @@ class BalanceService:
         
         return [{
             'id': tx.id,
+            'user_id': tx.user_id,
             'amount': tx.amount,
             'type': tx.type,
             'description': tx.description,

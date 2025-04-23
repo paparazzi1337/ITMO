@@ -98,6 +98,12 @@ class UserService:
             'role': UserRole.ADMIN.value
         })
     
+    def get_by_username(self, username: str) -> BaseUser | None:
+        return self.db.query(BaseUser).filter(BaseUser.username == username).first()
+
+    def get_by_email(self, email: str) -> BaseUser | None:
+        return self.db.query(BaseUser).filter(BaseUser.email == email).first()
+    
     def verify_user(self, username_or_email: str, password: str) -> Optional[BaseUser]:
         """
         Проверка учетных данных пользователя

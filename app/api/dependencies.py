@@ -25,7 +25,7 @@ async def get_current_user(
             raise credentials_exception
         
         user_service = UserService(db)
-        user = user_service.verify_user(username_or_email=username, password="")
+        user = user_service.get_by_username(username)  # Исправлено!
         if not user:
             raise credentials_exception
         return user

@@ -71,7 +71,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
             detail=f"Token generation error: {str(e)}"
         )
 
-async def get_current_user(
+'''async def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
     db: Session = Depends(get_session)
 ):
@@ -103,4 +103,4 @@ async def get_current_user(
     if user is None:
         raise credentials_exception
         
-    return user
+    return user'''
