@@ -6,14 +6,14 @@ import logging
 from typing import AsyncGenerator
 
 # Настройка логгера
-#logging.basicConfig(level=logging.INFO)
-#logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Импорты всех роутеров
 from api.routers.auth import router as auth_router
 from api.routers.users import router as users_router
 from api.routers.balance import router as balance_router
-from api.routers.models import router as models_router
+from api.routers.models import ml_route as models_router
 from api.routers.predictions import router as predictions_router
 
 @asynccontextmanager

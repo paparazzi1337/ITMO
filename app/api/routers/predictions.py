@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from ..schemas import PredictionCreate, PredictionResponse
 from services.prediction_history_services import PredictionService
 from services.balance_services import BalanceService
-from services.model_services import ModelService
+from services.model_services import MLTaskService
 from ..dependencies import get_current_user
 from database.database import get_session
 from models.base_user import BaseUser
@@ -23,7 +23,7 @@ def create_prediction(
 ):
     prediction_service = PredictionService(db)
     balance_service = BalanceService(db)
-    model_service = ModelService(db)
+    model_service = MLTaskService(db)
     
     try:
         # Списание средств

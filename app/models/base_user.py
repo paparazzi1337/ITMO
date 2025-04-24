@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from sqlalchemy import Column, String, Boolean, DateTime, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from database.database import Base
 
@@ -12,7 +12,7 @@ class UserRole(str, Enum):
 class BaseUser(Base):
     __tablename__ = "users"
 
-    user_id = Column("user_id", String, primary_key=True)
+    user_id = Column("user_id", Integer, primary_key=True)
     username = Column("username", String, unique=True, nullable=False)
     email = Column("email", String, unique=True, nullable=False)
     password = Column('password', String(255))

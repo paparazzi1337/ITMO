@@ -64,31 +64,37 @@ class BalanceResponse(BaseModel):
         from_attributes = True
 
 # Model schemas
-class MLModelStatus(str, Enum):
-    TRAINING = "training"
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    ERROR = "error"
+class TaskStatus(str, Enum):
+    """Дублируем enum для статусов, если он нужен в схемах"""
+    NEW = "new"
+    QUEUED = "queued"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
 
-class ModelBase(BaseModel):
-    model_config = ConfigDict(protected_namespaces=())
+class MLTaskCreate(BaseModel):
+    """DTO для создания ML задачи"""
+    question: str
+    user_id: int
+    status: TaskStatus = TaskStatus.NEW
 
-    name: str
-    model_type: str
+class MLTaskUpdate(BaseModel):
+    """DTO для обновления ML задачи"""
+    status: Optional[TaskStatus] = None
+    result: Optional[str] = None
 
-class ModelCreate(ModelBase):
-    pass
-
-class ModelResponse(ModelBase):
-    model_config = ConfigDict(
-        protected_namespaces=(),
-        from_attributes = True
-    )
-
-    model_id: str
-    owner_id: str
-    status: MLModelStatus
+class MLTaskResponse(BaseModel):
+    """Схема для ответа с данными задачи"""
+    id: int
+    question: str
+    status: TaskStatus
+    result: Optional[str] = None
+    user_id: int
     created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
         
 
 # Prediction schemas

@@ -1,28 +1,52 @@
-from abc import ABC
 from datetime import datetime
 from enum import Enum
-from typing import Dict
-from sqlalchemy import Column, String, JSON, DateTime, Enum as SQLEnum, ForeignKey
+from typing import Optional, TYPE_CHECKING
+from pydantic import BaseModel
+from sqlalchemy import Column, String, Integer, DateTime, Enum as SQLEnum, ForeignKey
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 from database.database import Base
 
-class MLModelStatus(Enum):
-    TRAINING = "training"
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    ERROR = "error"
+if TYPE_CHECKING:
+    from models.base_user import BaseUser
 
-class BaseMLModel(Base):
-    __tablename__ = "models"
+class TaskStatus(str, Enum):
+    """Статусы выполнения ML задачи"""
+    NEW = "new"
+    QUEUED = "queued"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
 
-    model_id = Column(String, primary_key=True)
-    name = Column(String, nullable=False)
-    owner_id = Column(String, ForeignKey("users.user_id"), nullable=False)
-    status = Column(SQLEnum(MLModelStatus), default=MLModelStatus.INACTIVE)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    model_metadata = Column(JSON, default={})
-    model_type = Column(String, nullable=False)
-    model_path = Column(String)
+# SQLAlchemy ORM модели
+class MLTaskBase(Base):
+    __abstract__ = True
+    status = Column(SQLEnum(TaskStatus), default=TaskStatus.NEW)
+    result = Column(String, nullable=True)
+    question = Column(String, nullable=True)
+    
+class MLTask(MLTaskBase):
+    __tablename__ = "ml_tasks"  # Изменил имя таблицы на более конкретное
 
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.user_id'))
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    
     owner = relationship("BaseUser", back_populates="models")
-    predictions = relationship("PredictionTask", back_populates="model", cascade="all, delete-orphan")
+
+    def to_queue_message(self) -> dict:
+        return {
+            "task_id": self.id,
+            "question": self.question,
+        }
+
+# Pydantic DTO модели (отдельно от ORM)
+class MLTaskCreate(BaseModel):
+    question: str
+    user_id: int
+    status: TaskStatus = TaskStatus.NEW  # Значение по умолчанию
+
+class MLTaskUpdate(BaseModel):
+    status: Optional[TaskStatus] = None
+    result: Optional[str] = None

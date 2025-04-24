@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from sqlalchemy import Column, String, JSON, DateTime, Enum as SQLEnum, ForeignKey
+from sqlalchemy import Column, Integer, String, JSON, DateTime, Enum as SQLEnum, ForeignKey
 from sqlalchemy.orm import relationship
 from database.database import Base
 
@@ -13,9 +13,9 @@ class PredictionStatus(Enum):
 class PredictionTask(Base):
     __tablename__ = "predictions"
 
-    task_id = Column(String, primary_key=True)
-    user_id = Column(String, ForeignKey("users.user_id"))
-    model_id = Column(String, ForeignKey("models.model_id"))
+    task_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.user_id"))
+    model_id = Column(Integer, ForeignKey("ml_tasks.id"))
     input_data = Column(JSON)
     status = Column(SQLEnum(PredictionStatus), default=PredictionStatus.PENDING)
     created_at = Column(DateTime, default=datetime.utcnow)

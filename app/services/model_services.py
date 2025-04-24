@@ -1,71 +1,68 @@
-# services/model_services.py
-import pika
-import json
 from datetime import datetime
-from models.model import BaseMLModel, MLModelStatus
-from models.base_user import BaseUser
-from typing import Dict
+from typing import List, Optional
 
-class ModelService:
+from sqlalchemy import select
+#
+from models.model import MLTask, MLTaskCreate, MLTaskUpdate, TaskStatus
+
+class MLTaskService:
     def __init__(self, db_session):
         self.db = db_session
-        self.rabbit_connection = self._init_rabbitmq()
-    
-    def _init_rabbitmq(self):
-        """Инициализация подключения к RabbitMQ"""
-        connection = pika.BlockingConnection(
-            pika.ConnectionParameters('rabbitmq'))
-        channel = connection.channel()
-        channel.queue_declare(queue='model_predictions', durable=True)
-        return connection
-    
-    def create_model(self, model_data: Dict) -> BaseMLModel:
-        model = BaseMLModel(
-            model_id=model_data['model_id'],
-            name=model_data['name'],
-            owner_id=model_data['owner_id'],
-            model_type=model_data.get('model_type', 'base'),
-            model_path=model_data.get('model_path')
+
+    def create(self, task_create: MLTaskCreate) -> MLTask:
+        """Создает новую ML задачу"""
+        task = MLTask(
+            status=task_create.status,
+            question=task_create.question,
+            user_id=task_create.user_id
         )
-        self.db.add(model)
+        self.db.add(task)
         self.db.commit()
-        return model
-    
-    def publish_prediction_task(self, model_id: str, input_data: Dict) -> str:
-        """Публикация задачи на предсказание в RabbitMQ"""
-        channel = self.rabbit_connection.channel()
-        task_id = str(uuid.uuid4())
+        self.db.refresh(task)
+        return task
+
+    def get(self, task_id: int):
+        return self.db.query(MLTask).filter(MLTask.id == task_id).first()
+
+    def get_all(self):
+        return self.db.query(MLTask).all()  # Возвращает список SQLAlchemy моделей
+
+    def update(self, task_id: int, task_update: MLTaskUpdate) -> Optional[MLTask]:
+        """Обновляет существующую задачу"""
+        task = self.get(task_id)
+        if not task:
+            return None
         
-        channel.basic_publish(
-            exchange='',
-            routing_key='model_predictions',
-            body=json.dumps({
-                'task_id': task_id,
-                'model_id': model_id,
-                'input_data': input_data,
-                'timestamp': datetime.utcnow().isoformat()
-            }),
-            properties=pika.BasicProperties(
-                delivery_mode=2  # Сохранять сообщения при перезапуске
+        update_data = task_update.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(task, field, value)
+        
+        task.updated_at = datetime.utcnow()
+        self.db.add(task)
+        self.db.commit()
+        self.db.refresh(task)
+        return task
+
+    def delete(self, task_id: int) -> bool:
+        """Удаляет задачу по ID"""
+        task = self.get(task_id)
+        if not task:
+            return False
+        
+        self.db.delete(task)
+        self.db.commit()
+        return True
+
+    def set_status(self, task_id: int, status: TaskStatus) -> Optional[MLTask]:
+        """Обновляет статус задачи"""
+        return self.update(task_id, MLTaskUpdate(status=status))
+
+    def set_result(self, task_id: int, result: str) -> Optional[MLTask]:
+        """Устанавливает результат выполнения задачи"""
+        return self.update(
+            task_id, 
+            MLTaskUpdate(
+                status=TaskStatus.COMPLETED,
+                result=result
             )
         )
-        return task_id
-    
-    def change_status(self, model: BaseMLModel, status: MLModelStatus) -> None:
-        model.status = status
-        self.db.commit()
-
-class TensorFlowModelService:
-    def __init__(self, model_path: str):
-        self.model_path = model_path
-        self._model = self._load_model()
-    
-    def _load_model(self):
-        """Загрузка TensorFlow модели"""
-        # Реальная реализация
-        print(f"Loading TensorFlow model from {self.model_path}")
-        return None
-    
-    def predict(self, input_data: Dict) -> Dict:
-        """Выполнение предсказания"""
-        return {"prediction": "sample_result"}
