@@ -75,7 +75,7 @@ class TaskStatus(str, Enum):
 class MLTaskCreate(BaseModel):
     """DTO для создания ML задачи"""
     question: str
-    user_id: int
+    user_id: str
     status: TaskStatus = TaskStatus.NEW
 
 class MLTaskUpdate(BaseModel):
@@ -85,11 +85,11 @@ class MLTaskUpdate(BaseModel):
 
 class MLTaskResponse(BaseModel):
     """Схема для ответа с данными задачи"""
-    id: int
+    id: str
     question: str
     status: TaskStatus
     result: Optional[str] = None
-    user_id: int
+    user_id: str
     created_at: datetime
     updated_at: datetime
 

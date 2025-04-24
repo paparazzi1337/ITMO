@@ -1,6 +1,7 @@
 from datetime import datetime
 from enum import Enum
 from typing import Optional, TYPE_CHECKING
+import uuid
 from pydantic import BaseModel
 from sqlalchemy import Column, String, Integer, DateTime, Enum as SQLEnum, ForeignKey
 from sqlalchemy.orm import relationship
@@ -28,12 +29,12 @@ class MLTaskBase(Base):
 class MLTask(MLTaskBase):
     __tablename__ = "ml_tasks"  # Изменил имя таблицы на более конкретное
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.user_id'))
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey('users.user_id'))
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     
-    owner = relationship("BaseUser", back_populates="models")
+    owner = relationship("BaseUser", back_populates="ml_tasks")
 
     def to_queue_message(self) -> dict:
         return {
@@ -44,7 +45,7 @@ class MLTask(MLTaskBase):
 # Pydantic DTO модели (отдельно от ORM)
 class MLTaskCreate(BaseModel):
     question: str
-    user_id: int
+    user_id: str
     status: TaskStatus = TaskStatus.NEW  # Значение по умолчанию
 
 class MLTaskUpdate(BaseModel):

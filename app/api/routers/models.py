@@ -14,7 +14,10 @@ logging.getLogger('pika').setLevel(logging.INFO)
 
 logger = get_logger(logger_name=__name__)
 
-ml_route = APIRouter()
+ml_route = APIRouter(
+    prefix="/MLTask",
+    tags=["MLTask"]
+)
 
 def get_mltask_service(session: Session = Depends(get_session)) -> MLTaskService:
     return MLTaskService(session)
@@ -25,7 +28,7 @@ def get_mltask_service(session: Session = Depends(get_session)) -> MLTaskService
     summary="ML endpoint",
     description="Send ml request"
 )
-async def send_task(message: str, user_id: int, mltask_service: MLTaskService = Depends(get_mltask_service)) -> str:
+async def send_task(message: str, user_id: str, mltask_service: MLTaskService = Depends(get_mltask_service)) -> str:
     """
     Root endpoint returning welcome message.
 
@@ -50,7 +53,7 @@ async def send_task(message: str, user_id: int, mltask_service: MLTaskService = 
 
 @ml_route.post("/send_task_result", response_model=Dict[str, str])
 def send_task_result(
-    task_id: int,
+    task_id: str,
     result: str,
     mltask_service: MLTaskService = Depends(get_mltask_service)
 ) -> Dict[str, str]:
@@ -77,7 +80,7 @@ def send_task_result(
 @ml_route.post("/send_task_rpc", response_model=Dict[str, str])
 async def send_task_rpc(
     message: str,
-    user_id: int,
+    user_id: str,
     mltask_service: MLTaskService = Depends(get_mltask_service)
 ) -> Dict[str, str]:
     """
@@ -124,7 +127,7 @@ async def get_all_tasks(
 
 @ml_route.get("/tasks/{task_id}", response_model=MLTaskResponse)  # Та же схема
 async def get_task(
-    task_id: int,
+    task_id: str,
     mltask_service: MLTaskService = Depends(get_mltask_service)
 ):
     """Get ML task by ID."""

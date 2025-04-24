@@ -30,7 +30,6 @@ services:
 
     volumes:
       - ./ml_worker:/app
-      - ./common:/common
     depends_on:
       database:
         condition: service_started
@@ -46,8 +45,7 @@ services:
       - "80:80"
       - "443:443"
     depends_on:
-      app:
-        condition: service_healthy
+      - app
     networks:
       - event-planner-network
   rabbitmq:

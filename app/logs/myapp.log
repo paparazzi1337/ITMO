@@ -1,0 +1,21 @@
+2025-04-24 18:05:34,414 - api.routers.models - ERROR - Unexpected error in sending task: (psycopg2.errors.NotNullViolation) null value in column "id" of relation "ml_tasks" violates not-null constraint
+DETAIL:  Failing row contains (null, ba1256a5-1001-4574-bd43-aef6aa88ee87, 2025-04-24 18:05:34.409398, 2025-04-24 18:05:34.409398, NEW, null, Хахахахахаха вот это прикол).
+
+[SQL: INSERT INTO ml_tasks (user_id, status, result, question) VALUES (%(user_id)s, %(status)s, %(result)s, %(question)s) RETURNING ml_tasks.created_at, ml_tasks.updated_at]
+[parameters: {'user_id': 'ba1256a5-1001-4574-bd43-aef6aa88ee87', 'status': 'NEW', 'result': None, 'question': 'Хахахахахаха вот это прикол'}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+2025-04-24 18:13:29,505 - api.routers.models - ERROR - Unexpected error in sending task: (psycopg2.errors.ForeignKeyViolation) insert or update on table "ml_tasks" violates foreign key constraint "ml_tasks_user_id_fkey"
+DETAIL:  Key (user_id)=(ba1256a5-1001-4574-bd43-aef6aa88ee87) is not present in table "users".
+
+[SQL: INSERT INTO ml_tasks (id, user_id, status, result, question) VALUES (%(id)s, %(user_id)s, %(status)s, %(result)s, %(question)s) RETURNING ml_tasks.created_at, ml_tasks.updated_at]
+[parameters: {'id': '5d6bc36a-0f25-4df1-bf51-fedd9608a680', 'user_id': 'ba1256a5-1001-4574-bd43-aef6aa88ee87', 'status': 'NEW', 'result': None, 'question': 'Хахахахахаха вот это прикол'}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+2025-04-24 18:13:32,573 - api.routers.models - ERROR - Unexpected error in sending task: (psycopg2.errors.ForeignKeyViolation) insert or update on table "ml_tasks" violates foreign key constraint "ml_tasks_user_id_fkey"
+DETAIL:  Key (user_id)=(ba1256a5-1001-4574-bd43-aef6aa88ee87) is not present in table "users".
+
+[SQL: INSERT INTO ml_tasks (id, user_id, status, result, question) VALUES (%(id)s, %(user_id)s, %(status)s, %(result)s, %(question)s) RETURNING ml_tasks.created_at, ml_tasks.updated_at]
+[parameters: {'id': '86d329ba-b08e-4d26-8860-bfb3b3903d32', 'user_id': 'ba1256a5-1001-4574-bd43-aef6aa88ee87', 'status': 'NEW', 'result': None, 'question': 'Хахахахахаха вот это прикол'}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+2025-04-24 18:15:29,045 - api.routers.models - INFO - Massage has created: <models.model.MLTask object at 0x7f3f35d3be10>
+2025-04-24 18:15:29,046 - api.routers.models - INFO - Sending task to RabbitMQ: Блин, реально зашибись
+2025-04-24 18:16:49,063 - api.routers.models - INFO - !!!!!!!!Task result has been set: Лол ахах
