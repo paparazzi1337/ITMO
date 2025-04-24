@@ -1,45 +1,63 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, APIRouter
+from datetime import datetime
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from database.database import init_db
+import os
 import logging
 from typing import AsyncGenerator
 
-# Настройка логгера
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Импорты всех роутеров
+# Импорты роутеров
 from api.routers.auth import router as auth_router
 from api.routers.users import router as users_router
 from api.routers.balance import router as balance_router
 from api.routers.models import ml_route as models_router
 from api.routers.predictions import router as predictions_router
+from api.routers.web import router as web_router
+
+from database.database import init_db, get_session
+from database.config import settings
+from services.base_user_services import UserService
+from jose import jwt
+
+# Настройка логгера
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Lifespan handler для управления событиями жизненного цикла приложения"""
-    # Инициализация при запуске
     try:
-        init_db(drop_all=True)  # Очищаем и создаем БД заново
-        #logger.info("Database initialized and cleared successfully")
+        init_db(drop_all=True)
+        os.makedirs("app/static/css", exist_ok=True)
+        os.makedirs("app/templates", exist_ok=True)
     except Exception as e:
-        #logger.error(f"Error initializing database: {str(e)}")
+        logger.error(f"Error initializing: {str(e)}")
         raise
-    
-    yield  # Приложение работает
-    
-    # Очистка при завершении (если нужна)
+    yield
     logger.info("Application shutdown")
 
 app = FastAPI(
     title="ML Prediction Service",
     version="1.0.0",
-    description="API для управления ML-моделями и балансом пользователей",
+    description="API и веб-интерфейс для управления ML-моделями",
     lifespan=lifespan
 )
 
-# Настройка CORS
+# Подключаем статические файлы
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+# Инициализация Jinja2 для веб-роутера
+templates = Jinja2Templates(directory="app/templates")
+web_router.templates = templates
+web_router.create_access_token = lambda data, expires_delta: jwt.encode(
+    {**data, "exp": datetime.utcnow() + expires_delta},
+    settings.SECRET_KEY,
+    algorithm=settings.ALGORITHM
+)
+
+# Подключаем CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -48,20 +66,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Создаем основной роутер с единым префиксом /api
-api_router = APIRouter()
-api_router.include_router(auth_router)
-api_router.include_router(users_router, tags=["users"])
-api_router.include_router(balance_router)
-api_router.include_router(models_router)
-api_router.include_router(predictions_router)
-
-# Подключаем основной роутер к приложению
-app.include_router(api_router, prefix="/api")
-
-@app.get("/")
-def read_root():
-    return {"message": "ML Prediction Service is running"}
+# Подключаем все роутеры
+app.include_router(auth_router, prefix="/api/auth")
+app.include_router(users_router, prefix="/api/users")
+app.include_router(balance_router, prefix="/api/balance")
+app.include_router(models_router, prefix="/api/models")
+app.include_router(predictions_router, prefix="/api/predictions")
+app.include_router(web_router)
 
 if __name__ == "__main__":
     import uvicorn

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Главная страница{% endblock %}
+
+{% block content %}
+<div class="welcome-card card shadow">
+    <div class="card-body text-center">
+        <h1 class="card-title">
+            {% if logged_in %}
+                Добро пожаловать, {{ user.username }}!
+            {% else %}
+                Добро пожаловать в ML Service
+            {% endif %}
+        </h1>
+        
+        <div class="mt-4">
+            {% if logged_in %}
+                <a href="/balance" class="btn btn-primary btn-lg">Перейти к балансу</a>
+            {% else %}
+                <p class="lead">Для доступа к сервису выполните вход</p>
+                <a href="/login" class="btn btn-primary btn-lg">Войти в систему</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

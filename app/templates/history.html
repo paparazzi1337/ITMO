@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}История операций{% endblock %}
+
+{% block content %}
+<div class="history-card card shadow">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">История операций</h3>
+        <a href="/balance" class="btn btn-sm btn-light">Назад к балансу</a>
+    </div>
+    <div class="card-body">
+        {% if history %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Описание</th>
+                        <th class="text-end">Сумма</th>
+                        <th class="text-end">Баланс</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in history %}
+                    <tr>
+                        <td>{{ item.date.strftime('%d.%m.%Y %H:%M') }}</td>
+                        <td>{{ item.description }}</td>
+                        <td class="text-end {{ 'text-success' if item.amount > 0 else 'text-danger' }}">
+                            {{ '{:+,}'.format(item.amount) }}
+                        </td>
+                        <td class="text-end">{{ '{:,}'.format(item.balance) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">Нет данных об операциях</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

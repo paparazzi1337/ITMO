@@ -9,6 +9,8 @@ services:
     container_name: event-planner-api1337
     volumes:
       - ./app:/app
+      - ./app/static:/app/static  # Явное монтирование static
+      - ./app/templates:/app/templates  
     depends_on:
       database:
         condition: service_started

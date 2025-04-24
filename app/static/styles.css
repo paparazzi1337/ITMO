@@ -1,0 +1,84 @@
+/* Основные стили */
+body {
+    background-color: #f8f9fa;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Навигация */
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+}
+
+.navbar-brand {
+    font-weight: 700;
+}
+
+/* Карточки */
+.card {
+    border: none;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.card-header {
+    font-weight: 600;
+}
+
+.welcome-card {
+    max-width: 800px;
+    margin: 2rem auto;
+    border: none;
+}
+
+.login-card {
+    margin-top: 3rem;
+}
+
+.balance-card, .history-card {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+/* Баланс */
+.balance-display {
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.balance-amount {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+.currency {
+    font-size: 1.5rem;
+    color: #7f8c8d;
+}
+
+/* Таблица истории */
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .balance-amount {
+        font-size: 2rem;
+    }
+    
+    .currency {
+        font-size: 1rem;
+    }
+    
+    .navbar-nav {
+        padding-top: 1rem;
+    }
+}
