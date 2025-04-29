@@ -96,7 +96,7 @@ class RpcClient:
             self.response = body.decode()
 
     @retry_connection()
-    def call(self, text: str, timeout: float = 10.0) -> str:
+    def call(self, text: str, timeout: float = 60.0) -> str:
         """Выполнить RPC вызов с переданным текстом.
         
         Args:

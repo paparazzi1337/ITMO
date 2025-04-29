@@ -57,6 +57,8 @@ services:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
       - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit disk_free_limit 2147483648
+      - RABBITMQ_MESSAGE_TIMEOUT=600000  # 10 минут в ms
+      - RABBITMQ_DELIVERY_TIMEOUT=300000 # 5 минут
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     ports:
@@ -79,8 +81,15 @@ services:
       restart: unless-stopped
       environment:
         - OLLAMA_MODELS=gemma3:1b
+        - OLLAMA_NUM_PARALLEL=1  # Уменьшите для маломощных серверов
+        - OLLAMA_KEEP_ALIVE=5m    # Поддерживать модель в памяти
       networks:
         - event-planner-network
+      deploy:
+        resources:
+          limits:
+            cpus: '2'
+            memory: 8G        
   database:
     image: postgres:17-alpine
     container_name: event-planner-db1337

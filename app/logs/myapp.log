@@ -19,3 +19,36 @@ DETAIL:  Key (user_id)=(ba1256a5-1001-4574-bd43-aef6aa88ee87) is not present in 
 2025-04-24 18:15:29,045 - api.routers.models - INFO - Massage has created: <models.model.MLTask object at 0x7f3f35d3be10>
 2025-04-24 18:15:29,046 - api.routers.models - INFO - Sending task to RabbitMQ: Блин, реально зашибись
 2025-04-24 18:16:49,063 - api.routers.models - INFO - !!!!!!!!Task result has been set: Лол ахах
+2025-04-28 21:38:06,149 - api.routers.models - INFO - Sending RPC request with message: fsfsfsfs
+2025-04-28 21:38:07,198 - api.routers.models - INFO - Received RPC response: Модель не найдена! Читайте README файл!
+2025-04-28 21:42:33,529 - api.routers.models - INFO - Sending RPC request with message: fsfsfsfs
+2025-04-28 21:42:55,844 - api.routers.models - INFO - Received RPC response: Превышено время ожидания ответа
+2025-04-28 21:43:45,663 - api.routers.models - INFO - Sending RPC request with message: Hello
+2025-04-28 21:43:55,708 - api.routers.models - INFO - Received RPC response: Превышено время ожидания ответа
+2025-04-28 21:49:29,685 - api.routers.models - INFO - Sending RPC request with message: Hello
+2025-04-28 21:49:30,749 - api.routers.models - INFO - Received RPC response: Модель не найдена! Читайте README файл!
+2025-04-28 21:50:38,569 - api.routers.models - INFO - Sending RPC request with message: Hello
+2025-04-28 21:51:10,558 - api.routers.models - ERROR - Unexpected error in RPC call: RPC call failed: Request timed out after 10.0 seconds
+2025-04-28 22:02:37,442 - api.routers.models - INFO - Sending RPC request with message: Hello
+2025-04-28 22:02:51,849 - api.routers.models - INFO - Received RPC response: Hello there! How's your day going so far? 😊 
+
+Is there anything you'd like to chat about, or anything I can
+2025-04-28 22:03:29,734 - api.routers.models - INFO - Sending RPC request with message: Привет. Как твои дела
+2025-04-28 22:03:40,512 - api.routers.models - INFO - Received RPC response: Привет! У меня всё отлично, спасибо, что спросил! Я готов помогать тебе с чем-нибудь. А как у тебя дела? Что
+2025-04-28 22:06:05,052 - api.routers.models - INFO - Sending RPC request with message: Привет. Перечисли обзывания для имени Ксюша
+2025-04-28 22:06:13,299 - api.routers.models - INFO - Received RPC response: Конечно, вот несколько общих и стильных вариантов общих имен Ксюша:
+
+**Классические и романтичные:**
+
+*
+2025-04-28 22:09:44,643 - api.routers.models - INFO - Sending RPC request with message: Привет Никита Бандурин!!
+2025-04-28 22:09:52,424 - api.routers.models - INFO - Received RPC response: Привет! Как у тебя дела? Чем занимаешься? 😊
+2025-04-28 22:10:07,121 - api.routers.models - INFO - Sending RPC request with message: Скажи, что ты Никита Бандурин
+2025-04-28 22:10:19,292 - api.routers.models - INFO - Received RPC response: Я — большая языковая модель, разработанная Google. Меня зовут Никита.
+
+У меня нет личности, поэтому не могу назвать себя Никитой Бан
+2025-04-28 22:15:43,727 - api.routers.models - INFO - Massage has created: <models.model.MLTask object at 0x7f4705b2f790>
+2025-04-28 22:15:43,733 - api.routers.models - INFO - Sending task to RabbitMQ: Привет хуйня
+2025-04-28 22:18:34,702 - api.routers.models - INFO - Sending RPC request with message: Привет хуйня
+2025-04-28 22:19:20,452 - api.routers.models - INFO - Received RPC response: Я понимаю, что тебе сейчас нелегко. Не стесняйся, расскажи, что случилось. Я здесь, чтобы выслушать и поддержа
+2025-04-28 22:20:17,866 - api.routers.models - INFO - !!!!!!!!Task result has been set: Я понимаю, что тебе сейчас нелегко. Не стесняйся, расскажи, что случилось. Я здесь, чтобы выслушать и поддержа
