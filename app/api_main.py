@@ -1,67 +1,193 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, APIRouter
+from datetime import datetime
+from fastapi import Depends, FastAPI, APIRouter, Form, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from database.database import init_db
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
 import logging
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 
-# Настройка логгера
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Импорты всех роутеров
+# Импорт моделей и сервисов
+from services.base_user_services import UserService
+from models.base_user import BaseUser
+from services.balance_services import BalanceService
+from database.database import get_session, init_db
 from api.routers.auth import router as auth_router
 from api.routers.users import router as users_router
 from api.routers.balance import router as balance_router
 from api.routers.models import ml_route as models_router
 from api.routers.predictions import router as predictions_router
+from api.dependencies import get_current_user
+from core.templates import templates
+
+# Настройка логгера
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Lifespan handler для управления событиями жизненного цикла приложения"""
-    # Инициализация при запуске
+    """Управление жизненным циклом приложения"""
     try:
-        init_db(drop_all=True)  # Очищаем и создаем БД заново
-        #logger.info("Database initialized and cleared successfully")
+        init_db(drop_all=True)  # Инициализация БД
+        logger.info("Database initialized successfully")
     except Exception as e:
-        #logger.error(f"Error initializing database: {str(e)}")
+        logger.error(f"Database initialization failed: {str(e)}")
         raise
-    
-    yield  # Приложение работает
-    
-    # Очистка при завершении (если нужна)
+    yield
     logger.info("Application shutdown")
 
-app = FastAPI(
-    title="ML Prediction Service",
-    version="1.0.0",
-    description="API для управления ML-моделями и балансом пользователей",
-    lifespan=lifespan
-)
+def create_app() -> FastAPI:
+    app = FastAPI(
+        title="ML Prediction Service",
+        version="1.0.0",
+        description="API для управления ML-моделями и балансом пользователей",
+        lifespan=lifespan
+    )
 
-# Настройка CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    # Настройка middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
-# Создаем основной роутер с единым префиксом /api
-api_router = APIRouter()
-api_router.include_router(auth_router)
-api_router.include_router(users_router, tags=["users"])
-api_router.include_router(balance_router)
-api_router.include_router(models_router)
-api_router.include_router(predictions_router)
+    # Подключение статических файлов
+    app.mount("/static", StaticFiles(directory="/app/static"), name="static")
 
-# Подключаем основной роутер к приложению
-app.include_router(api_router, prefix="/api")
+    # Подключение API роутеров
+    api_router = APIRouter()
+    api_router.include_router(auth_router)
+    api_router.include_router(users_router, tags=["users"])
+    api_router.include_router(balance_router)
+    api_router.include_router(models_router)
+    api_router.include_router(predictions_router)
+    app.include_router(api_router, prefix="/api")
 
-@app.get("/")
-def read_root():
-    return {"message": "ML Prediction Service is running"}
+    return app
+
+app = create_app()
+
+async def get_current_user_from_request(request: Request) -> Optional[BaseUser]:
+    """Получение текущего пользователя для шаблонов"""
+    try:
+        db = next(get_session())
+        return await get_current_user(request, db)
+    except Exception:
+        return None
+
+# HTML роуты
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request, db: Session = Depends(get_session)):
+    try:
+        current_user = await get_current_user(request, db)
+        return templates.TemplateResponse(
+            "index.html",
+            {"request": request, "current_user": current_user}
+        )
+    except HTTPException:
+        return templates.TemplateResponse(
+            "index.html",
+            {"request": request, "current_user": None}
+        )
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request, error: str = None):
+    return templates.TemplateResponse(
+        "login.html",
+        {"request": request, "error": error}
+    )
+
+@app.get("/register", response_class=HTMLResponse)
+async def register_page(request: Request, error: str = None):
+    return templates.TemplateResponse(
+        "register.html",
+        {"request": request, "error": error}
+    )
+
+@app.post("/register")
+async def handle_register(
+    request: Request,
+    db: Session = Depends(get_session)
+):
+    try:
+        form_data = await request.form()
+        user_data = {
+            'username': form_data.get('username'),
+            'email': form_data.get('email'),
+            'password': form_data.get('password'),
+            'password_confirm': form_data.get('password_confirm')
+        }
+        
+        # Проверка паролей
+        if user_data['password'] != user_data['password_confirm']:
+            return templates.TemplateResponse(
+                "register.html",
+                {"request": request, "error": "Пароли не совпадают"},
+                status_code=400
+            )
+        
+        user_service = UserService(db)
+        user_service.create_user(user_data)
+        
+        return RedirectResponse("/login", status_code=303)
+        
+    except ValueError as e:
+        return templates.TemplateResponse(
+            "register.html",
+            {"request": request, "error": str(e)},
+            status_code=400
+        )
+
+@app.get("/balance", response_class=HTMLResponse)
+async def balance_page(
+    request: Request,
+    current_user: BaseUser = Depends(get_current_user),
+    db: Session = Depends(get_session)
+):
+    balance_service = BalanceService(db)
+    
+    return templates.TemplateResponse(
+        "balance.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "transactions": balance_service.get_transaction_history(current_user.user_id),
+            "now": datetime.now  # Добавляем функцию now в контекст шаблона
+        }
+    )
+
+@app.post("/login")
+async def handle_login(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_session)
+):
+    try:
+        # Здесь должна быть ваша логика аутентификации
+        # Например:
+        user_service = UserService(db)
+        user = user_service.verify_user(username, password)
+        if not user:
+            raise ValueError("Invalid credentials")
+        
+        response = RedirectResponse("/", status_code=303)
+        # Установка кук и т.д.
+        return response
+    except Exception as e:
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "error": str(e)},
+            status_code=400
+        )
+
+@app.get("/health")
+async def health_check():
+    return {"status": "OK"}
 
 if __name__ == "__main__":
     import uvicorn

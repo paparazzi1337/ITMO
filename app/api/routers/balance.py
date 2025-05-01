@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from decimal import Decimal
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from ..schemas import TransactionCreate, TransactionResponse, BalanceResponse
 from services.balance_services import BalanceService
@@ -19,22 +21,40 @@ def get_user_balance(
     amount = balance_service.get_balance(current_user)
     return {"amount": amount, "updated_at": datetime.utcnow()}
 
-@router.post("/deposit", response_model=TransactionResponse)
-def deposit(
-    transaction: TransactionCreate,
+@router.post("/deposit")
+async def deposit_balance(
+    request: Request,
     current_user: BaseUser = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
-    balance_service = BalanceService(db)
+    form_data = await request.form()
     try:
-        tx_id = balance_service.deposit(
-            current_user,
-            transaction.amount,
-            transaction.description
+        amount = Decimal(form_data.get("amount"))
+        description = form_data.get("description", "")
+        
+        balance_service = BalanceService(db)
+        transaction_id = balance_service.deposit(
+            user=current_user,
+            amount=amount,
+            description=description
         )
-        return balance_service.get_transaction(tx_id)
+        
+        return RedirectResponse(url="/balance", status_code=303)
+        
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        from fastapi.templating import Jinja2Templates
+        templates = Jinja2Templates(directory="app/templates")
+        
+        return templates.TemplateResponse(
+            "balance.html",
+            {
+                "request": request,
+                "current_user": current_user,
+                "error": str(e),
+                "transactions": BalanceService(db).get_transaction_history(current_user.user_id)
+            },
+            status_code=400
+        )
 
 @router.get("/history", response_model=List[TransactionResponse])
 def get_transaction_history(

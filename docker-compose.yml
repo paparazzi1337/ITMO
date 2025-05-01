@@ -27,7 +27,6 @@ services:
     image: event-planner-ml-worker:latest
     container_name: event-planner-ml-worker1337
     restart: unless-stopped
-
     volumes:
       - ./ml_worker:/app
     depends_on:
