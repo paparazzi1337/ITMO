@@ -2,12 +2,11 @@ from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy import select
-#
 from models.model import MLTask, MLTaskCreate, MLTaskUpdate, TaskStatus
 
 class MLTaskService:
     def __init__(self, db_session):
-        self.db = db_session
+        self.db = db_session  # Используем db как session
 
     def create(self, task_create: MLTaskCreate) -> MLTask:
         """Создает новую ML задачу"""
@@ -23,9 +22,19 @@ class MLTaskService:
 
     def get(self, task_id: int):
         return self.db.query(MLTask).filter(MLTask.id == task_id).first()
+    
+    def get_user_tasks(self, user_id: str) -> List[MLTask]:
+        """Получить все задачи пользователя"""
+        return self.db.query(MLTask).filter(MLTask.user_id == user_id).order_by(MLTask.created_at).all()
+    
+    def get_chat_history(self, user_id: str):
+        """Получить историю чата пользователя"""
+        return self.db.query(MLTask).filter(
+            MLTask.user_id == user_id
+        ).order_by(MLTask.created_at).all()
 
     def get_all(self):
-        return self.db.query(MLTask).all()  # Возвращает список SQLAlchemy моделей
+        return self.db.query(MLTask).all()
 
     def update(self, task_id: int, task_update: MLTaskUpdate) -> Optional[MLTask]:
         """Обновляет существующую задачу"""

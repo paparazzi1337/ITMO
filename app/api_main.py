@@ -10,6 +10,7 @@ import logging
 from typing import AsyncGenerator, Optional
 
 # Импорт моделей и сервисов
+from services.model_services import MLTaskService
 from services.base_user_services import UserService
 from models.base_user import BaseUser
 from services.balance_services import BalanceService
@@ -17,7 +18,7 @@ from database.database import get_session, init_db
 from api.routers.auth import router as auth_router
 from api.routers.users import router as users_router
 from api.routers.balance import router as balance_router
-from api.routers.models import ml_route as models_router
+from api.routers.models import ml_route as models_router, send_task_rpc
 from api.routers.predictions import router as predictions_router
 from api.dependencies import get_current_user
 from core.templates import templates
@@ -182,6 +183,111 @@ async def handle_login(
         return templates.TemplateResponse(
             "login.html",
             {"request": request, "error": str(e)},
+            status_code=400
+        )
+    
+@app.get("/chat", response_class=HTMLResponse)
+async def chat_page(
+    request: Request,
+    current_user: BaseUser = Depends(get_current_user),
+    db: Session = Depends(get_session)
+):
+    if not current_user:
+        return RedirectResponse("/login", status_code=303)
+    
+    mltask_service = MLTaskService(db)
+    tasks = mltask_service.get_chat_history(current_user.user_id)
+    
+    responses = []
+    for task in tasks:
+        responses.append({
+            "original": task.question,
+            "processed": task.result,
+            "timestamp": task.created_at.strftime('%d.%m.%Y %H:%M')  # Используем время из задачи
+        })
+    
+    return templates.TemplateResponse(
+        "chat.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "responses": responses,
+            "now": datetime.now  # Добавляем функцию now в контекст
+        }
+    )
+
+@app.post("/chat", response_class=HTMLResponse)
+async def handle_chat(
+    request: Request,
+    message: str = Form(...),
+    user_id: str = Form(...),
+    current_user: BaseUser = Depends(get_current_user),
+    db: Session = Depends(get_session)
+):
+    if not current_user:
+        return RedirectResponse("/login", status_code=303)
+
+    # Проверяем баланс
+    balance_service = BalanceService(db)
+    if current_user.balance.amount < 10:
+        mltask_service = MLTaskService(db)
+        tasks = mltask_service.get_chat_history(current_user.user_id)
+        responses = [
+            {
+                "original": task.question,
+                "processed": task.result,
+                "timestamp": task.created_at.strftime('%d.%m.%Y %H:%M')
+            } for task in tasks
+        ]
+        
+        return templates.TemplateResponse(
+            "chat.html",
+            {
+                "request": request,
+                "current_user": current_user,
+                "responses": responses,
+                "error": "Недостаточно средств на балансе"
+            },
+            status_code=400
+        )
+
+    try:
+        # Списываем средства
+        balance_service.withdraw(current_user.user_id, 10, "Оплата запроса к модели")
+
+        # Отправляем запрос к модели
+        mltask_service = MLTaskService(db)
+        response = await send_task_rpc(
+            message=message,
+            user_id=user_id,
+            mltask_service=mltask_service
+        )
+
+        # Перенаправляем на GET /chat чтобы обновить историю
+        return RedirectResponse("/chat", status_code=303)
+
+    except HTTPException as e:
+        # Возвращаем средства при ошибке
+        balance_service.deposit(current_user.user_id, 10, "Возврат средств за невыполненный запрос")
+        
+        # Получаем текущую историю
+        tasks = mltask_service.get_chat_history(current_user.user_id)
+        responses = [
+            {
+                "original": task.question,
+                "processed": task.result,
+                "timestamp": task.created_at.strftime('%d.%m.%Y %H:%M')
+            } for task in tasks
+        ]
+        
+        return templates.TemplateResponse(
+            "chat.html",
+            {
+                "request": request,
+                "current_user": current_user,
+                "responses": responses,
+                "error": str(e.detail)
+            },
             status_code=400
         )
 
