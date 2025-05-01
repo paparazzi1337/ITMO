@@ -91,7 +91,7 @@ class BalanceService:
             'type': tx.type,
             'description': tx.description,
             'status': tx.status,
-            'timestamp': tx.timestamp.isoformat()
+            'timestamp': tx.timestamp.strftime('%d.%m.%Y %H:%M')
         } for tx in transactions]
 
     def get_transaction(self, transaction_id: str) -> Dict:
