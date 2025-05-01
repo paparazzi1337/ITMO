@@ -6,6 +6,7 @@ from models.base_user import BaseUser
 from services.base_user_services import UserService
 from database.database import get_session
 from database.config import settings
+from fastapi import Cookie
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login", scheme_name="BearerAuth")
 
@@ -31,3 +32,13 @@ async def get_current_user(
         return user
     except JWTError:
         raise credentials_exception
+    
+async def get_current_user_from_cookie(
+    access_token: str | None = Cookie(default=None, alias="access_token"),
+    db: Session = Depends(get_session)
+) -> BaseUser:
+    if not access_token or not access_token.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    token = access_token.split(" ")[1]
+    return await get_current_user(token, db)  # Используем существующую логику

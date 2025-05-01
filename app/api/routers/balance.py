@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from ..schemas import TransactionCreate, TransactionResponse, BalanceResponse
 from services.balance_services import BalanceService
@@ -32,7 +33,8 @@ def deposit(
             transaction.amount,
             transaction.description
         )
-        return balance_service.get_transaction(tx_id)
+        balance_service.deposit(current_user, tx_id)
+        return RedirectResponse(url="/balance/", status_code=303)  # Редирект после успеха
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

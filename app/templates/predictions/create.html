@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="predictions-container">
+    <h1>Новое предсказание</h1>
+    
+    <form method="POST" action="/api/predictions/">
+        <div class="form-group">
+            <label for="model_id">ID модели:</label>
+            <input type="text" id="model_id" name="model_id" required>
+        </div>
+        <div class="form-group">
+            <label for="input_data">Данные для предсказания (JSON):</label>
+            <textarea id="input_data" name="input_data" required>{}</textarea>
+        </div>
+        <button type="submit" class="btn">Создать предсказание</button>
+    </form>
+
+    <h2>История предсказаний</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID задачи</th>
+                <th>Модель</th>
+                <th>Статус</th>
+                <th>Результат</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pred in predictions %}
+            <tr>
+                <td>{{ pred.task_id }}</td>
+                <td>{{ pred.model_id }}</td>
+                <td>{{ pred.status }}</td>
+                <td>{{ pred.result|default("—") }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

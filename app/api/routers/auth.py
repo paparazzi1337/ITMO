@@ -5,6 +5,9 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from fastapi import Request, Response, Form  # Новые импорты
+from fastapi.responses import RedirectResponse
+from typing import Optional
 
 from ..schemas import Token
 from services.base_user_services import UserService

@@ -25,6 +25,7 @@ services:
   ml_worker:
     build: ./ml_worker/
     image: event-planner-ml-worker:latest
+    profiles: ["disabled"]
     container_name: event-planner-ml-worker1337
     restart: unless-stopped
 
@@ -76,6 +77,7 @@ services:
       container_name: gemma-server-new1337
       ports:
         - "11434:11434"
+      profiles: ["disabled"]  
       volumes:
         - ollama_data:/root/.ollama
       restart: unless-stopped

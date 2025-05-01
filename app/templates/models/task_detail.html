@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="task-detail">
+    <h1>Задача #{{ task.id }}</h1>
+    
+    <div class="task-info">
+        <p><strong>Статус:</strong> {{ task.status }}</p>
+        <p><strong>Вопрос:</strong> {{ task.question }}</p>
+        <p><strong>Результат:</strong> {{ task.result|default("Ещё не готово") }}</p>
+        <p><strong>Создана:</strong> {{ task.created_at }}</p>
+        <p><strong>Обновлена:</strong> {{ task.updated_at }}</p>
+    </div>
+
+    <a href="/MLTask/tasks" class="btn">Назад к списку</a>
+</div>
+{% endblock %}

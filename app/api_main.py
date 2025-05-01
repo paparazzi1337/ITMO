@@ -1,6 +1,11 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from database.database import init_db
 import logging
 from typing import AsyncGenerator
@@ -39,6 +44,11 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Настройка Jinja2 и статических файлов
+app.mount("/static", StaticFiles(directory="/app/static"), name="static")
+templates = Jinja2Templates(directory="/app/templates")
+
+
 # Настройка CORS
 app.add_middleware(
     CORSMiddleware,
@@ -59,9 +69,46 @@ api_router.include_router(predictions_router)
 # Подключаем основной роутер к приложению
 app.include_router(api_router, prefix="/api")
 
-@app.get("/")
-def read_root():
-    return {"message": "ML Prediction Service is running"}
+# HTML-роуты
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    return templates.TemplateResponse(
+        "base.html",
+        {"request": request, "title": "Главная"}
+    )
+
+@app.get("/auth/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    return templates.TemplateResponse(
+        "auth/login.html",
+        {"request": request, "title": "Вход"}
+    )
+
+@app.get("/balance/", response_class=HTMLResponse)
+async def balance_page(request: Request):
+    # Здесь нужно добавить логику получения баланса
+    return templates.TemplateResponse(
+        "balance/balance.html",
+        {
+            "request": request,
+            "title": "Баланс",
+            "balance": {"amount": 10000000000.00},  # Заглушка
+            "transactions": []  # Заглушка
+        }
+    )
+
+@app.get("/MLTask/tasks", response_class=HTMLResponse)
+async def tasks_page(request: Request):
+    # Здесь нужно добавить логику получения задач
+    return templates.TemplateResponse(
+        "models/tasks.html",
+        {
+            "request": request,
+            "title": "ML задачи",
+            "tasks": [],  # Заглушка
+            "current_user": {"user_id": "test"}  # Заглушка
+        }
+    )
 
 if __name__ == "__main__":
     import uvicorn

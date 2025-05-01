@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="tasks-container">
+    <h1>ML задачи</h1>
+    
+    <form method="POST" action="/api/MLTask/send_task">
+        <div class="form-group">
+            <label for="message">Запрос:</label>
+            <textarea id="message" name="message" required></textarea>
+        </div>
+        <input type="hidden" name="user_id" value="{{ current_user.user_id }}">
+        <button type="submit" class="btn">Отправить задачу</button>
+    </form>
+
+    <h2>Мои задачи</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Вопрос</th>
+                <th>Статус</th>
+                <th>Дата создания</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in tasks %}
+            <tr>
+                <td><a href="/MLTask/tasks/{{ task.id }}">{{ task.id[:8] }}...</a></td>
+                <td>{{ task.question }}</td>
+                <td>{{ task.status }}</td>
+                <td>{{ task.created_at }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

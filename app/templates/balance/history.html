@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="balance-container">
+    <h1>История операций</h1>
+    
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Тип</th>
+                    <th>Сумма</th>
+                    <th>Описание</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tx in transactions %}
+                <tr class="{% if tx.type == 'deposit' %}deposit-row{% else %}withdrawal-row{% endif %}">
+                    <td>{{ tx.timestamp.strftime('%d.%m.%Y %H:%M') }}</td>
+                    <td>
+                        <span class="tx-type">{{ tx.type }}</span>
+                    </td>
+                    <td class="{% if tx.type == 'deposit' %}positive{% else %}negative{% endif %}">
+                        {{ tx.amount }} ₽
+                    </td>
+                    <td>{{ tx.description }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <a href="/balance/" class="btn">Назад к балансу</a>
+</div>
+{% endblock %}
