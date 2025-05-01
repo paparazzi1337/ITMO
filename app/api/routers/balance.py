@@ -33,7 +33,7 @@ def deposit(
             transaction.amount,
             transaction.description
         )
-        balance_service.deposit(current_user, tx_id)
+        #balance_service.deposit(current_user, tx_id)
         return RedirectResponse(url="/balance/", status_code=303)  # Редирект после успеха
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
